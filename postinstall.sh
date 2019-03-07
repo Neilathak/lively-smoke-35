@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
-hst=($hostname -s)
 
-if [ ${hst} = "nginx-lb-*" ]; then 
-    echo "Yep, that is the hostname"
-else
-    echo "Nope, not working"
-fi
+function hostname-test() {
+hst=`hostname -s`
 
-if [ ${hst} = "web-*" ]; then 
-    echo "Yep, that is the hostname"
-else
-    echo "Nope, not working"
-fi
+case $hst in
+  (nginx-*) echo "Woohoo, we're on nginx!";;
+  (web-*) echo "Oops, web? Are you kidding?";;
+  (*)   echo "How did I get in the middle of nowhere?";;
+esac
+
+} >/home/ryan/test.log 2>&1
+
+hostname-test 

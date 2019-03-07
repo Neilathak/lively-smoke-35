@@ -13,26 +13,36 @@ provider "dnsimple" {
 
 ```
 resource "ansible_group" "web" {
-  depends_on = ["ibm_compute_vm_instance.node"]
+  depends_on = ["ibm_compute_vm_instance.web_nodes"]
   inventory_group_name = "web"
 }
 
-resource "ansible_host" "node1_hostentry" {
+resource "ansible_host" "web1_hostentry" {
   depends_on = ["ansible_group.web"]
-    inventory_hostname = "node-1"
+    inventory_hostname = "web1"
     groups = ["web"]
     vars {
-        ansible_host = "${ibm_compute_vm_instance.node.0.ipv4_address}"
+        ansible_host = "web1.${var.domainname}"
         ansible_user = "ryan"
     }
 }
 
-resource "ansible_host" "node2_hostentry" {
-  depends_on = ["ansible_host.node1_hostentry"]
-    inventory_hostname = "node-2"
+resource "ansible_host" "web2_hostentry" {
+  depends_on = ["ansible_host.web1_hostentry"]
+    inventory_hostname = "web2"
     groups = ["web"]
     vars {
-        ansible_host = "${ibm_compute_vm_instance.node.1.ipv4_address}"
+        ansible_host = "web2.${var.domainname}"
+        ansible_user = "ryan"
+    }
+}
+
+resource "ansible_host" "web3_hostentry" {
+  depends_on = ["ansible_host.web2_hostentry"]
+    inventory_hostname = "web3"
+    groups = ["web"]
+    vars {
+        ansible_host = "web3.${var.domainname}"
         ansible_user = "ryan"
     }
 }
@@ -54,4 +64,41 @@ EOF
 
   filename = "./rendered.env"
 }
+```
+
+```
+# Use a built-in function cidrhost with index 2 (first usable IP).
+output "floating_ip" {
+  value = "${cidrhost(ibm_subnet.floating_ip_subnet.subnet_cidr,2)}"
+}
+
+
+output "floating_netmask" {
+  value = "${cidrnetmask(ibm_subnet.floating_ip_subnet.subnet_cidr)}"
+}
+
+
+resource "null_resource" "config_upload" {
+  depends_on = ["dnsimple_record.floating_ip_record"]
+
+  provisioner "file" {
+   source      = "postinstall.sh"
+    destination = "/home/ryan/postinstall.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /home/ryan/postinstall.sh",
+      "/home/ryan/postinstall.sh",
+    ]
+  }
+
+  connection {
+    host      = "${ibm_compute_vm_instance.nginx_lb_nodes.0.ipv4_address}"
+    type     = "ssh"
+    user     = "ryan"
+    private_key = "${file("~/.ssh/id_rsa")}"
+    }
+}
+
 ```

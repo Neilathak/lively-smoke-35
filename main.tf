@@ -20,7 +20,7 @@ resource "ibm_subnet" "apache_ip_subnet" {
 
 resource "ibm_compute_vm_instance" "nginx_lb_nodes" {
   count                = "${var.node_count["nginx_lb"]}"
-  hostname             = "nginx-lb-${count.index+1}"
+  hostname             = "nginx-lb${count.index+1}"
   domain               = "${var.domainname}"
   user_metadata        = "${file("install.yml")}"
   os_reference_code    = "${var.os["u16"]}"
@@ -41,8 +41,9 @@ resource "ibm_compute_vm_instance" "nginx_lb_nodes" {
 }
 
 resource "ibm_compute_vm_instance" "web_nodes" {
+  depends_on           = ["ibm_compute_vm_instance.nginx_lb_nodes"]
   count                = "${var.node_count["web"]}"
-  hostname             = "web-${count.index+1}"
+  hostname             = "web${count.index+1}"
   domain               = "${var.domainname}"
   user_metadata        = "${file("install.yml")}"
   os_reference_code    = "${var.os["u16"]}"
@@ -61,35 +62,142 @@ resource "ibm_compute_vm_instance" "web_nodes" {
   ]
 }
 
-resource "local_file" "output" {
-  content = <<EOF
-floating_ip = ${cidrhost(ibm_subnet.floating_ip_subnet.subnet_cidr,2)}
-floating_netmask = ${cidrnetmask(ibm_subnet.floating_ip_subnet.subnet_cidr)}
-web1_ip = ${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,2)}
-web2_ip = ${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,3)}
-web3_ip = ${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,4)}
-web_netmask = ${cidrnetmask(ibm_subnet.apache_ip_subnet.subnet_cidr)}
-EOF
-
-  filename = "IPs.env"
-}
-
 
 resource "dnsimple_record" "floating_ip_record" {
-  domain     = "${var.domainname}"
-  name       = "float"
-  value      = "${cidrhost(ibm_subnet.floating_ip_subnet.subnet_cidr,2)}"
-  type       = "A"
-  ttl        = 900
+  domain = "${var.domainname}"
+  name   = "float"
+  value  = "${cidrhost(ibm_subnet.floating_ip_subnet.subnet_cidr,2)}"
+  type   = "A"
+  ttl    = 900
 }
 
-# Use a built-in function cidrhost with index 2 (first usable IP).
-output "floating_ip" {
-  value = "${cidrhost(ibm_subnet.floating_ip_subnet.subnet_cidr,2)}"
+resource "dnsimple_record" "web_node_records" {
+  count  = "${var.node_count["web"]}"
+  domain = "${var.domainname}"
+  name   = "web${count.index+1}.ans"
+  value  = "${element(ibm_compute_vm_instance.web_nodes.*.ipv4_address_private,count.index)}"
+  type   = "A"
+  ttl    = 900
+}
+
+resource "dnsimple_record" "nginx_node_records" {
+  count  = "${var.node_count["nginx_lb"]}"
+  domain = "${var.domainname}"
+  name   = "nginx-lb${count.index+1}"
+  value  = "${element(ibm_compute_vm_instance.nginx_lb_nodes.*.ipv4_address,count.index)}"
+  type   = "A"
+  ttl    = 900
+}
+
+resource "local_file" "ansible_hosts" {
+  depends_on = ["ibm_compute_vm_instance.web_nodes"]
+
+  content = <<EOF
+[web]
+web1 ansible_host=web1.ans.${var.domainname} ansible_user=ryan
+web2 ansible_host=web2.ans.${var.domainname} ansible_user=ryan
+web3 ansible_host=web3.ans.${var.domainname} ansible_user=ryan
+
+[web:vars]
+host_key_checking = False
+ssh_args = -F  /Users/ryan/Sync/Coding/Ansible/ssh.cfg -o ControlMaster=auto -o ControlPersist=30m
+control_path = ~/.ssh/ansible-%%r@%%h:%%p
+
+[nginx]
+nginx-lb1 ansible_host=nginx-lb1.${var.domainname} ansible_user=ryan
+nginx-lb2 ansible_host=nginx-lb2.${var.domainname} ansible_user=ryan
+
+[local]
+control ansible_connection=local
+EOF
+
+  filename = "${path.cwd}/Ansible/inventory.env"
+}
+
+data "template_file" "web1_template" {
+  depends_on = ["local_file.ansible_hosts"]
+  template = "${file("${path.cwd}/TemplateFiles/web.tpl")}"
+  vars = {
+    web_ip_gateway = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,1)}"
+    web_ip = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,2)}"
+  }
+}
+
+resource "local_file" "web1_template" {
+  content = <<EOF
+${data.template_file.web1_template.rendered}
+EOF
+
+  filename = "${path.cwd}/Ansible/Playbooks/web1_ip.yml"
+}
+
+data "template_file" "web2_template" {
+  depends_on = ["local_file.ansible_hosts"]
+  template = "${file("${path.cwd}/TemplateFiles/web.tpl")}"
+  vars = {
+    web_ip_gateway = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,1)}"
+    web_ip = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,2)}"
+  }
+}
+
+resource "local_file" "web2_template" {
+  content = <<EOF
+${data.template_file.web2_template.rendered}
+EOF
+
+  filename = "${path.cwd}/Ansible/Playbooks/web2_ip.yml"
+}
+
+data "template_file" "web3_template" {
+  depends_on = ["local_file.ansible_hosts"]
+  template = "${file("${path.cwd}/TemplateFiles/web.tpl")}"
+  vars = {
+    web_ip_gateway = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,1)}"
+    web_ip = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,2)}"
+  }
+}
+
+resource "local_file" "web3_template" {
+  content = <<EOF
+${data.template_file.web3_template.rendered}
+EOF
+
+  filename = "${path.cwd}/Ansible/Playbooks/web3_ip.yml"
 }
 
 
-output "floating_netmask" {
-  value = "${cidrnetmask(ibm_subnet.floating_ip_subnet.subnet_cidr)}"
+data "template_file" "lb1_template" {
+  depends_on = ["local_file.ansible_hosts"]
+  template = "${file("${path.cwd}/TemplateFiles/floating.tpl")}"
+  vars = {
+    lb_ip_gateway = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,1)}"
+    lb_netmask = "${cidrnetmask(ibm_subnet.floating_ip_subnet.subnet_cidr)}"
+    lb_ip = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,2)}"
+  }
 }
 
+resource "local_file" "lb1_template" {
+  content = <<EOF
+${data.template_file.lb1_template.rendered}
+EOF
+
+  filename = "${path.cwd}/Ansible/Playbooks/nginx_lb1.yml"
+}
+
+data "template_file" "lb2_template" {
+  depends_on = ["local_file.ansible_hosts"]
+  template = "${file("${path.cwd}/TemplateFiles/floating.tpl")}"
+  vars = {
+    lb_ip_gateway = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,1)}"
+    lb_netmask = "${cidrnetmask(ibm_subnet.floating_ip_subnet.subnet_cidr)}"
+    lb_ip = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,2)}"
+  }
+}
+
+resource "local_file" "lb2_template" {
+  content = <<EOF
+${data.template_file.lb2_template.rendered}
+EOF
+
+  filename = "${path.cwd}/Ansible/Playbooks/nginx_lb2.yml"
+}
