@@ -1,5 +1,12 @@
 # Terraform, Ansible and HA load balancing in the IBM Cloud
 
+## **Major Work in Progress** 
+ - Things not complete yet:
+    - Need to configure the `install.yml` file to create a user account that is not named Ryan.
+    - Need to put placeholder in the `install.yml` file for where you can add your specific SSH keys (and not mine). 
+    - Need to create playbooks for installing Apache and configuring it to listen on private network IPs. 
+    - Need to create playbook for Nginx LB config (Keepalived and floating IP are already done)
+
 One of my colleagues (Hi Neil!) wrote a little guide for how to do a roll your own Cloud Load balancer scenerio with Keepalived and Nginx. I decided to take up the learning exercise/challenge of migrating the manual steps in the guide to an automated deployment model using Terraform and Ansible. I also added in an extra wrinkle which is to add Security groups in to the mix. The [overview](#overview) and [Objectives and Outcomes](#objectives-and-outcomes) sections below are lifted directly from Neils guide [here](https://dsc.cloud/quickshare/HA-NGINX-How-To.pdf).
 
 ## Overview 
@@ -20,9 +27,3 @@ Here is a simple diagram of what we are trying to accomplish:
  - Since our Web servers are going to be private network only you will need either a [Bastion host](https://en.wikipedia.org/wiki/Bastion_host) or existing IBM Cloud server to run the Ansible commands from. 
 
 
-**Major Work in Progress** 
- - Things not complete yet:
-    - Need to configure the `install.yml` file to create a user account that is not named Ryan.
-    - Need to put placeholder in the `install.yml` file for where you can add your specific SSH keys (and not mine). 
-    - Need to create playbooks for installing Apache and configuring it to listen on private network IPs. 
-    - Need to create playbook for Nginx LB config (Keepalived and floating IP are already done)
