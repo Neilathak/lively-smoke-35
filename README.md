@@ -20,3 +20,9 @@ Here is a simple diagram of what we are trying to accomplish:
  - Since our Web servers are going to be private network only you will need either a [Bastion host](https://en.wikipedia.org/wiki/Bastion_host) or existing IBM Cloud server to run the Ansible commands from. 
 
 
+**Major Work in Progress** 
+ - Things not complete yet:
+    - Need to configure the `install.yml` file to create a user account that is not named Ryan.
+    - Need to put placeholder in the `install.yml` file for where you can add your specific SSH keys (and not mine). 
+    - Need to create playbooks for installing Apache and configuring it to listen on private network IPs. 
+    - Need to create playbook for Nginx LB config (Keepalived and floating IP are already done)
