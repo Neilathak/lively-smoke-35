@@ -31,3 +31,4 @@ snippets.md
 *.log
 
 **/Ansible/*.log
+backend.tf
