@@ -16,12 +16,12 @@
           name: keepalived
           state: present
       - name: Config keepalived 
-        blockinfile:
-          path: /etc/keepalived/keepalived.conf
-          block: | 
+        copy:
+          dest: /etc/keepalived/keepalived.conf
+          content: | 
             vrrp_instance VI_1 {
                 state MASTER
-                interface eth1:1
+                interface eth1
                 virtual_router_id 51
                 priority 101
                 advert_int 1

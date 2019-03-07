@@ -28,3 +28,6 @@ override.tf.json
 #
 # !example_override.tf
 snippets.md
+*.log
+
+**/Ansible/*.log

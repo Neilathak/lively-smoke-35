@@ -136,7 +136,7 @@ data "template_file" "web2_template" {
   template = "${file("${path.cwd}/TemplateFiles/web.tpl")}"
   vars = {
     web_ip_gateway = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,1)}"
-    web_ip = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,2)}"
+    web_ip = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,3)}"
   }
 }
 
@@ -153,7 +153,7 @@ data "template_file" "web3_template" {
   template = "${file("${path.cwd}/TemplateFiles/web.tpl")}"
   vars = {
     web_ip_gateway = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,1)}"
-    web_ip = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,2)}"
+    web_ip = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,4)}"
   }
 }
 
@@ -170,9 +170,9 @@ data "template_file" "lb1_template" {
   depends_on = ["local_file.ansible_hosts"]
   template = "${file("${path.cwd}/TemplateFiles/floating.tpl")}"
   vars = {
-    lb_ip_gateway = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,1)}"
+    lb_ip_gateway = "${cidrhost(ibm_subnet.floating_ip_subnet.subnet_cidr,1)}"
     lb_netmask = "${cidrnetmask(ibm_subnet.floating_ip_subnet.subnet_cidr)}"
-    lb_ip = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,2)}"
+    lb_ip = "${cidrhost(ibm_subnet.floating_ip_subnet.subnet_cidr,2)}"
   }
 }
 
@@ -188,9 +188,9 @@ data "template_file" "lb2_template" {
   depends_on = ["local_file.ansible_hosts"]
   template = "${file("${path.cwd}/TemplateFiles/floating.tpl")}"
   vars = {
-    lb_ip_gateway = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,1)}"
+    lb_ip_gateway = "${cidrhost(ibm_subnet.floating_ip_subnet.subnet_cidr,1)}"
     lb_netmask = "${cidrnetmask(ibm_subnet.floating_ip_subnet.subnet_cidr)}"
-    lb_ip = "${cidrhost(ibm_subnet.apache_ip_subnet.subnet_cidr,2)}"
+    lb_ip = "${cidrhost(ibm_subnet.floating_ip_subnet.subnet_cidr,2)}"
   }
 }
 
