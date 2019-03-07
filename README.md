@@ -1,15 +1,23 @@
 # Terraform, Ansible and HA load balancing in the IBM Cloud
 
+One of my colleagues, *Hi Neil!*, wrote a guide for how to do a roll your own Cloud Load balancer scenerio with Keepalived and Nginx on the IBM Cloud. I decided to take up the learning exercise/challenge of migrating the manual steps in the guide to an automated deployment model using Terraform and Ansible. I also added in an extra wrinkle which is to add Security groups in to the mix. The [overview](#overview) and [Objectives and Outcomes](#objectives-and-outcomes) sections below are lifted directly from Neils guide [here](https://dsc.cloud/quickshare/HA-NGINX-How-To.pdf).
+
 ## **Major Work in Progress** 
- - Things not complete yet:
-    - Need to configure the `install.yml` file to create a user account that is not named Ryan.
-    - Need to put placeholder in the `install.yml` file for where you can add your specific SSH keys (and not mine). 
-    - Need to create playbooks for installing Apache and configuring it to listen on private network IPs. 
-    - Need to create playbook for Nginx LB config (Keepalived and floating IP are already done)
+#### Completed
+ - Deployment of IaaS Load Balancer and Web Servers using Terraform
+ - Generation of local Ansible Inventory file. 
+ - Generation of Ansible playbooks using Terraform template provider
+ - Ansible playbooks to add portable IPs to Web and Load balancer nodes
+ - Ansible playbooks to install and configure Keepalived
 
-One of my colleagues (Hi Neil!) wrote a little guide for how to do a roll your own Cloud Load balancer scenerio with Keepalived and Nginx. I decided to take up the learning exercise/challenge of migrating the manual steps in the guide to an automated deployment model using Terraform and Ansible. I also added in an extra wrinkle which is to add Security groups in to the mix. The [overview](#overview) and [Objectives and Outcomes](#objectives-and-outcomes) sections below are lifted directly from Neils guide [here](https://dsc.cloud/quickshare/HA-NGINX-How-To.pdf).
+#### Todo:
+ - Need to configure the `install.yml` file to create a user account that is not named Ryan.
+ - Need to put placeholder in the `install.yml` file for where you can add your specific SSH keys (and not mine). 
+ - Need to create playbooks for installing Apache and configuring it to listen on private network IPs. 
+ - Need to create playbook for Nginx LB config (Keepalived and floating IP are already done).
+ - Need to dynamically create Security groups based on Subnets that are provisioned.
 
-## Overview 
+## Overview
 Load balancers offer a great way to automatically distribute traffic across a pool of servers. Not only does it afford the opportunity to add or remove servers based on resource needs, but, whether a server in the pool goes down for maintenance or because it has some sort of failure, it also assures that you have as much availability for your service as possible when a server becomes unavailable.
 There can still, however, be a single point of failure in a load balancer implementation. If you only employ one load balancer in the setup, and if that load balancer fails, then your entire server pool could become unreachable. The objective of this document is to demonstrate how you can create an Active/Passive Highly Available pair of load balancers utilizing some open source operating systems, like Ubuntu, and web server software, like NGINX. NGINX is a powerful, open-source web server package that has many capabilities, including a load balancing functionality that has been used by companies large and small.
 
